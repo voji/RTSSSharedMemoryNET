@@ -17,18 +17,6 @@ namespace RTSSDemo
 
             ///////////////////////////////////////////////////////////////////
 
-            Console.WriteLine("Current OSD entries:");
-            var osdEntries = OSD.GetOSDEntries();
-            foreach( var osd in osdEntries )
-            {
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.WriteLine(osd.Owner);
-                Console.ResetColor();
-                Console.WriteLine("{0}\n", osd.Text);
-            }
-
-            ///////////////////////////////////////////////////////////////////
-
             Console.WriteLine("Current app entries with GPU contexts:");
             var appEntries = OSD.GetAppEntries().Where( x => (x.Flags & AppFlags.MASK) != AppFlags.None ).ToArray();
             foreach( var app in appEntries )

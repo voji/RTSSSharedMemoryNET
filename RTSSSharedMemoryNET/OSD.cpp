@@ -132,36 +132,7 @@ namespace RTSSSharedMemoryNET {
         Marshal::FreeHGlobal(IntPtr((LPVOID)lpText));
     }
 
-    array<OSDEntry^>^ OSD::GetOSDEntries()
-    {
-        HANDLE hMapFile = NULL;
-        LPRTSS_SHARED_MEMORY pMem = NULL;
-        openSharedMemory(&hMapFile, &pMem);
-
-        auto list = gcnew List<OSDEntry^>;
-
-        //include all slots
-        for(DWORD i=0; i < pMem->dwOSDArrSize; i++)
-        {
-            auto pEntry = (RTSS_SHARED_MEMORY::LPRTSS_SHARED_MEMORY_OSD_ENTRY)( (LPBYTE)pMem + pMem->dwOSDArrOffset + (i * pMem->dwOSDEntrySize) );
-            if( strlen(pEntry->szOSDOwner) )
-            {
-                auto entry = gcnew OSDEntry;
-                entry->Owner = Marshal::PtrToStringAnsi(IntPtr(pEntry->szOSDOwner));
-
-                if( pMem->dwVersion >= RTSS_VERSION(2,7) )
-                    entry->Text = Marshal::PtrToStringAnsi(IntPtr(pEntry->szOSDEx));
-                else
-                    entry->Text = Marshal::PtrToStringAnsi(IntPtr(pEntry->szOSD));
-
-                list->Add(entry);
-            }
-        }
-
-        closeSharedMemory(hMapFile, pMem);
-        return list->ToArray();
-    }
-
+   
     array<AppEntry^>^ OSD::GetAppEntries()
     {
         HANDLE hMapFile = NULL;
@@ -184,74 +155,9 @@ namespace RTSSSharedMemoryNET {
                 entry->Flags = (AppFlags)pEntry->dwFlags;
 
                 //instantaneous framerate fields
-                entry->InstantaneousTimeStart = timeFromTickcount(pEntry->dwTime0);
-                entry->InstantaneousTimeEnd = timeFromTickcount(pEntry->dwTime1);
-                entry->InstantaneousFrames = pEntry->dwFrames;
-                entry->InstantaneousFrameTime = TimeSpan::FromTicks(pEntry->dwFrameTime * TICKS_PER_MICROSECOND);
-
-                //framerate stats fields
-                entry->StatFlags = (StatFlags)pEntry->dwStatFlags;
-                entry->StatTimeStart = timeFromTickcount(pEntry->dwStatTime0);
-                entry->StatTimeEnd = timeFromTickcount(pEntry->dwStatTime1);
-                entry->StatFrames = pEntry->dwStatFrames;
-                entry->StatCount = pEntry->dwStatCount;
-                entry->StatFramerateMin = pEntry->dwStatFramerateMin;
-                entry->StatFramerateAvg = pEntry->dwStatFramerateAvg;
-                entry->StatFramerateMax = pEntry->dwStatFramerateMax;
-                if( pMem->dwVersion >= RTSS_VERSION(2,5) )
-                {
-                    entry->StatFrameTimeMin = pEntry->dwStatFrameTimeMin;
-                    entry->StatFrameTimeAvg = pEntry->dwStatFrameTimeAvg;
-                    entry->StatFrameTimeMax = pEntry->dwStatFrameTimeMax;
-                    entry->StatFrameTimeCount = pEntry->dwStatFrameTimeCount;
-                    //TODO - frametime buffer?
-                }
-
-                //OSD fields
-                entry->OSDCoordinateX = pEntry->dwOSDX;
-                entry->OSDCoordinateY = pEntry->dwOSDY;
-                entry->OSDZoom = pEntry->dwOSDPixel;
-                entry->OSDFrameId = pEntry->dwOSDFrame;
-                entry->OSDColor = Color::FromArgb(pEntry->dwOSDColor);
-                if( pMem->dwVersion >= RTSS_VERSION(2,1) )
-                    entry->OSDBackgroundColor = Color::FromArgb(pEntry->dwOSDBgndColor);
-
-                //screenshot fields
-                entry->ScreenshotFlags = (ScreenshotFlags)pEntry->dwScreenCaptureFlags;
-                entry->ScreenshotPath = Marshal::PtrToStringAnsi(IntPtr(pEntry->szScreenCapturePath));
-                if( pMem->dwVersion >= RTSS_VERSION(2,2) )
-                {
-                    entry->ScreenshotQuality = pEntry->dwScreenCaptureQuality;
-                    entry->ScreenshotThreads = pEntry->dwScreenCaptureThreads;
-                }
-
-                //video capture fields
-                if( pMem->dwVersion >= RTSS_VERSION(2,2) )
-                {
-                    entry->VideoCaptureFlags = (VideoCaptureFlags)pEntry->dwVideoCaptureFlags;
-                    entry->VideoCapturePath = Marshal::PtrToStringAnsi(IntPtr(pEntry->szVideoCapturePath));
-                    entry->VideoFramerate = pEntry->dwVideoFramerate;
-                    entry->VideoFramesize = pEntry->dwVideoFramesize;
-                    entry->VideoFormat = pEntry->dwVideoFormat;
-                    entry->VideoQuality = pEntry->dwVideoQuality;
-                    entry->VideoCaptureThreads = pEntry->dwVideoCaptureThreads;
-                }
-                if( pMem->dwVersion >= RTSS_VERSION(2,4) )
-                    entry->VideoCaptureFlagsEx = pEntry->dwVideoCaptureFlagsEx;
-
-                //audio capture fields
-                if( pMem->dwVersion >= RTSS_VERSION(2,3) )
-                    entry->AudioCaptureFlags = pEntry->dwAudioCaptureFlags;
-                if( pMem->dwVersion >= RTSS_VERSION(2,5) )
-                    entry->AudioCaptureFlags2 = pEntry->dwAudioCaptureFlags2;
-                if( pMem->dwVersion >= RTSS_VERSION(2,6) )
-                {
-                    entry->AudioCapturePTTEventPush = pEntry->qwAudioCapturePTTEventPush.QuadPart;
-                    entry->AudioCapturePTTEventRelease = pEntry->qwAudioCapturePTTEventRelease.QuadPart;
-                    entry->AudioCapturePTTEventPush2 = pEntry->qwAudioCapturePTTEventPush2.QuadPart;
-                    entry->AudioCapturePTTEventRelease2 = pEntry->qwAudioCapturePTTEventRelease2.QuadPart;
-                }
-
+                entry->InstantaneousTimeStart = pEntry->dwTime0;
+                entry->InstantaneousTimeEnd = pEntry->dwTime1;
+                entry->InstantaneousFrames = pEntry->dwFrames;                
                 list->Add(entry);
             }
         }
@@ -299,8 +205,4 @@ namespace RTSSSharedMemoryNET {
 
     }
 
-    DateTime OSD::timeFromTickcount(DWORD ticks)
-    {
-        return DateTime::Now - TimeSpan::FromMilliseconds(ticks);
-    }
 }
